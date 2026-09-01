@@ -107,6 +107,12 @@ Implementation is planned as six incremental, low-budget stages (Stage 0 →
 Stage 5), from a two-node object-sync demo up to a full Intent Router driving
 a physical robot arm. See [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md).
 
+## Support
+
+Aether Kernel is independent, self-funded research and engineering
+work. If you'd like to support continued development — or see what
+funding goes toward — see [`DONATE.md`](DONATE.md).
+
 ## Security
 
 Aether Kernel treats security as a first-class design constraint, not an
