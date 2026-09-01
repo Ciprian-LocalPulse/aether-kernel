@@ -1,0 +1,19 @@
+[package]
+name = "aether-kernel"
+version = "0.1.0-alpha"
+edition = "2021"
+authors = ["Ciprian Ștefan Pleșca <https://github.com/Ciprian-LocalPulse>"]
+license = "Apache-2.0"
+description = "Aether Kernel — capability-based microkernel for the Aether spatial computing stack."
+repository = "https://github.com/Ciprian-LocalPulse/aether-kernel"
+
+[lib]
+name = "aether_kernel"
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "1.0"
+log = "0.4"
+bitflags = "2"
+
+[dev-dependencies]

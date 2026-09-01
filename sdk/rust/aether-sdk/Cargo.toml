@@ -1,0 +1,11 @@
+[package]
+name = "aether-sdk"
+version = "0.1.0-alpha"
+edition = "2021"
+authors = ["Ciprian Ștefan Pleșca <https://github.com/Ciprian-LocalPulse>"]
+license = "Apache-2.0"
+description = "Aether SDK (Rust) — client API for the Aether spatial computing network."
+repository = "https://github.com/Ciprian-LocalPulse/aether-kernel"
+
+[dependencies]
+thiserror = "1.0"

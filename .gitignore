@@ -1,0 +1,35 @@
+# Rust
+/target
+**/target
+Cargo.lock
+!/kernel/Cargo.lock
+
+# C++
+build/
+*.o
+*.obj
+CMakeFiles/
+CMakeCache.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
+build/
+
+# JS / TS
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Aether-specific
+*.aethercache/
+/simulator/exports/

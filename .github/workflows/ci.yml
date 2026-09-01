@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  kernel-and-sync-engine:
+    name: Rust (kernel, sync-engine, sdk/rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: kernel — fmt, clippy, test
+        working-directory: kernel
+        run: |
+          cargo fmt --check
+          cargo clippy -- -D warnings
+          cargo test
+      - name: sync-engine — fmt, clippy, test
+        working-directory: sync-engine
+        run: |
+          cargo fmt --check
+          cargo clippy -- -D warnings
+          cargo test
+      - name: sdk/rust — test
+        working-directory: sdk/rust/aether-sdk
+        run: cargo test
+
+  perception-engine:
+    name: C++ (perception-engine)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+      - name: configure & build
+        working-directory: perception-engine
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: test
+        working-directory: perception-engine
+        run: ctest --test-dir build --output-on-failure
+
+  intent-router:
+    name: Python (intent-router, sdk/python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: intent-router — install & test
+        working-directory: intent-router
+        run: |
+          pip install -e ".[dev]"
+          black --check src tests
+          ruff check src tests
+          pytest
+      - name: sdk/python — install & test
+        working-directory: sdk/python
+        run: |
+          pip install -e ".[dev]"
+          pytest
+
+  js-sdk:
+    name: JS/TS (sdk/js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - working-directory: sdk/js/aether-sdk
+        run: |
+          npm install
+          npm run build
+          npm test
+
+  cpp-sdk:
+    name: C++ SDK (header-only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y g++
+      - working-directory: sdk/cpp
+        run: |
+          g++ -std=c++20 -I include tests/sdk_tests.cpp -o /tmp/sdk_tests
+          /tmp/sdk_tests

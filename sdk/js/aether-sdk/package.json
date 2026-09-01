@@ -1,0 +1,21 @@
+{
+  "name": "@aether-kernel/sdk",
+  "version": "0.1.0-alpha.0",
+  "description": "Aether SDK (JavaScript/TypeScript) — client API for the Aether spatial computing network, targeting WebXR apps.",
+  "license": "Apache-2.0",
+  "author": "Ciprian Ștefan Pleșca",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ciprian-LocalPulse/aether-kernel"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

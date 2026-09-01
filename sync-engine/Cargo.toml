@@ -1,0 +1,18 @@
+[package]
+name = "aether-sync-engine"
+version = "0.1.0-alpha"
+edition = "2021"
+authors = ["Ciprian Ștefan Pleșca <https://github.com/Ciprian-LocalPulse>"]
+license = "Apache-2.0"
+description = "Aether Temporal Sync Engine — CRDT-based scene-graph synchronization over QUIC."
+repository = "https://github.com/Ciprian-LocalPulse/aether-kernel"
+
+[lib]
+name = "aether_sync_engine"
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "1.0"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]

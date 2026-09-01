@@ -1,0 +1,44 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aether Kernel logo">
+  <title>Aether Kernel</title>
+  <defs>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7DE0FF"/>
+      <stop offset="55%" stop-color="#3AA8FF"/>
+      <stop offset="100%" stop-color="#155FCC"/>
+    </radialGradient>
+    <linearGradient id="ringGradA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7DE0FF"/>
+      <stop offset="100%" stop-color="#0B3E91"/>
+    </linearGradient>
+    <linearGradient id="ringGradB" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9C6BFF"/>
+      <stop offset="100%" stop-color="#1E1B4B"/>
+    </linearGradient>
+    <linearGradient id="ringGradC" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4CE0C4"/>
+      <stop offset="100%" stop-color="#0B3E91"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="248" fill="#060B18"/>
+
+  <g fill="none" stroke-linecap="round">
+    <ellipse cx="256" cy="256" rx="210" ry="86" stroke="url(#ringGradA)" stroke-width="7" transform="rotate(0 256 256)"/>
+    <ellipse cx="256" cy="256" rx="210" ry="86" stroke="url(#ringGradB)" stroke-width="7" transform="rotate(60 256 256)"/>
+    <ellipse cx="256" cy="256" rx="210" ry="86" stroke="url(#ringGradC)" stroke-width="7" transform="rotate(120 256 256)"/>
+  </g>
+
+  <g fill="#DCEFFF">
+    <circle cx="466" cy="256" r="7"/>
+    <circle cx="150" cy="410" r="7"/>
+    <circle cx="362" cy="102" r="7"/>
+  </g>
+
+  <circle cx="256" cy="256" r="54" fill="url(#coreGlow)"/>
+  <circle cx="256" cy="256" r="54" fill="none" stroke="#EAF6FF" stroke-opacity="0.35" stroke-width="2"/>
+
+  <g stroke="#EAF6FF" stroke-opacity="0.55" stroke-width="1.5">
+    <line x1="256" y1="222" x2="256" y2="290"/>
+    <line x1="222" y1="256" x2="290" y2="256"/>
+  </g>
+</svg>
