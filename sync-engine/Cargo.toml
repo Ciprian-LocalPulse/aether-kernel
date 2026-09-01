@@ -12,7 +12,7 @@ name = "aether_sync_engine"
 path = "src/lib.rs"
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
