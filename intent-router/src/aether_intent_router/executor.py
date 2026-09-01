@@ -8,8 +8,8 @@ simulator, against the SDK, or against nothing at all (dry run / tests).
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, Optional
 
 from .models import Action, Plan
 
@@ -31,7 +31,7 @@ def _default_handler(action: Action) -> bool:
 
 
 class Executor:
-    def __init__(self, handler: Optional[ActionHandler] = None) -> None:
+    def __init__(self, handler: ActionHandler | None = None) -> None:
         self._handler = handler or _default_handler
 
     def run(self, plan: Plan) -> Iterator[ExecutionResult]:

@@ -8,14 +8,12 @@ negotiation for a single planning round.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-
 from .models import Action, AgentCapability
 
 
 def allocate_actions(
-    actions: List[Action], agents: List[AgentCapability]
-) -> Dict[str, Optional[str]]:
+    actions: list[Action], agents: list[AgentCapability]
+) -> dict[str, str | None]:
     """For each action, pick the cheapest capable agent (lowest
     `cost_multiplier`). Returns a mapping of action name -> agent_id
     (or None if no agent can perform it).
@@ -25,7 +23,7 @@ def allocate_actions(
     real multi-round negotiation — sufficient for a single planning
     round with all bids known up front.
     """
-    assignment: Dict[str, Optional[str]] = {}
+    assignment: dict[str, str | None] = {}
     for action in actions:
         candidates = [a for a in agents if action.name in a.supported_actions]
         if not candidates:

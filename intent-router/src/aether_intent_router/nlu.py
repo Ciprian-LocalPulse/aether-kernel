@@ -10,7 +10,7 @@ dependency-free `RuleBasedNlu` fallback so the pipeline works offline.
 from __future__ import annotations
 
 import re
-from typing import Protocol
+from typing import ClassVar, Protocol
 
 from .models import Intent
 
@@ -24,10 +24,19 @@ class RuleBasedNlu:
     reference implementation of the `NluBackend` protocol, not a
     replacement for a real language model."""
 
-    _PATTERNS = [
-        (re.compile(r"\bbring me a?n? ?(?P<object>[\w ]+)", re.I), "fetch_object"),
-        (re.compile(r"\btake me to (?:the )?(?P<destination>[\w ]+)", re.I), "navigate_to"),
-        (re.compile(r"\bshow me how to (?P<task>[\w ]+)", re.I), "show_instructions"),
+    _PATTERNS: ClassVar[list[tuple[re.Pattern[str], str]]] = [
+        (
+            re.compile(r"\bbring me a?n? ?(?P<object>[\w ]+)", re.IGNORECASE),
+            "fetch_object",
+        ),
+        (
+            re.compile(r"\btake me to (?:the )?(?P<destination>[\w ]+)", re.IGNORECASE),
+            "navigate_to",
+        ),
+        (
+            re.compile(r"\bshow me how to (?P<task>[\w ]+)", re.IGNORECASE),
+            "show_instructions",
+        ),
     ]
 
     def parse(self, utterance: str) -> Intent:

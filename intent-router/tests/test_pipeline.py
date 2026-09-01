@@ -1,8 +1,8 @@
+from aether_intent_router.coordination import allocate_actions
 from aether_intent_router.executor import Executor
+from aether_intent_router.models import AgentCapability
 from aether_intent_router.nlu import RuleBasedNlu
 from aether_intent_router.planner import GoapPlanner
-from aether_intent_router.coordination import allocate_actions
-from aether_intent_router.models import AgentCapability
 
 
 def test_rule_based_nlu_extracts_fetch_object_intent():
@@ -25,7 +25,11 @@ def test_planner_finds_full_fetch_object_plan():
     planner = GoapPlanner()
     plan = planner.plan(
         intent,
-        world_state={"robot_at": "living_room", "has_glass": False, "glass_filled": False},
+        world_state={
+            "robot_at": "living_room",
+            "has_glass": False,
+            "glass_filled": False,
+        },
     )
     action_names = [a.name for a in plan.actions]
     assert action_names == [
@@ -42,7 +46,11 @@ def test_executor_runs_full_plan_with_dry_run_handler():
     planner = GoapPlanner()
     plan = planner.plan(
         intent,
-        world_state={"robot_at": "living_room", "has_glass": False, "glass_filled": False},
+        world_state={
+            "robot_at": "living_room",
+            "has_glass": False,
+            "glass_filled": False,
+        },
     )
     executor = Executor()
     results = list(executor.run(plan))
@@ -55,8 +63,12 @@ def test_coordination_allocates_cheapest_capable_agent():
 
     actions = [Action(name="pick_up_glass")]
     agents = [
-        AgentCapability(agent_id="robot-a", supported_actions=["pick_up_glass"], cost_multiplier=2.0),
-        AgentCapability(agent_id="robot-b", supported_actions=["pick_up_glass"], cost_multiplier=1.0),
+        AgentCapability(
+            agent_id="robot-a", supported_actions=["pick_up_glass"], cost_multiplier=2.0
+        ),
+        AgentCapability(
+            agent_id="robot-b", supported_actions=["pick_up_glass"], cost_multiplier=1.0
+        ),
     ]
     assignment = allocate_actions(actions, agents)
     assert assignment["pick_up_glass"] == "robot-b"

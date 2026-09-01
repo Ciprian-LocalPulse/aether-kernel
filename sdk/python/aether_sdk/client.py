@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
 
 
 class SdkError(Exception):
@@ -30,19 +30,19 @@ class AetherClient:
     def __init__(self, endpoint: str) -> None:
         self.endpoint = endpoint
         self._connected = True
-        self._objects: Dict[int, Transform] = {}
+        self._objects: dict[int, Transform] = {}
         self._next_id = 1
-        self._subscribers: Dict[str, List[Callable[[ObjectId, Transform], None]]] = {}
+        self._subscribers: dict[str, list[Callable[[ObjectId, Transform], None]]] = {}
 
     @classmethod
-    def connect(cls, endpoint: str) -> "AetherClient":
+    def connect(cls, endpoint: str) -> AetherClient:
         return cls(endpoint)
 
     def _require_connected(self) -> None:
         if not self._connected:
             raise SdkError("not connected")
 
-    def create_object(self, transform: Optional[Transform] = None) -> ObjectId:
+    def create_object(self, transform: Transform | None = None) -> ObjectId:
         self._require_connected()
         oid = ObjectId(self._next_id)
         self._next_id += 1
@@ -57,11 +57,13 @@ class AetherClient:
         for callback in self._subscribers.get("*", []):
             callback(object_id, transform)
 
-    def subscribe(self, cell_id: str, callback: Callable[[ObjectId, Transform], None]) -> None:
+    def subscribe(
+        self, cell_id: str, callback: Callable[[ObjectId, Transform], None]
+    ) -> None:
         self._require_connected()
         self._subscribers.setdefault(cell_id, []).append(callback)
 
-    def send_intent(self, text: str, context: Optional[dict] = None) -> None:
+    def send_intent(self, text: str, context: dict | None = None) -> None:
         """Forward a natural-language intent to the Intent Router.
 
         TODO(roadmap Stage 5): bridge to ``intent-router`` over HTTP/gRPC.

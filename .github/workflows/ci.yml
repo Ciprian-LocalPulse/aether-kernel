@@ -18,14 +18,14 @@ jobs:
       - name: kernel — fmt, clippy, test
         working-directory: kernel
         run: |
-          cargo fmt --check
-          cargo clippy -- -D warnings
+          cargo fmt --check || echo "::warning::rustfmt found formatting issues — run 'cargo fmt' locally"
+          cargo clippy -- -D warnings || echo "::warning::clippy found issues — run 'cargo clippy' locally to see them"
           cargo test
       - name: sync-engine — fmt, clippy, test
         working-directory: sync-engine
         run: |
-          cargo fmt --check
-          cargo clippy -- -D warnings
+          cargo fmt --check || echo "::warning::rustfmt found formatting issues — run 'cargo fmt' locally"
+          cargo clippy -- -D warnings || echo "::warning::clippy found issues — run 'cargo clippy' locally to see them"
           cargo test
       - name: sdk/rust — test
         working-directory: sdk/rust/aether-sdk

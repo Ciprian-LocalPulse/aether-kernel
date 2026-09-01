@@ -13,14 +13,14 @@ this module exists to make the pipeline runnable end-to-end today.
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .models import Action, Intent, Plan
 
 # A tiny built-in action library. Real systems would derive this from
 # each connected agent's declared `AgentCapability` (see coordination.py)
 # rather than hardcoding it.
-_ACTION_LIBRARY: List[Action] = [
+_ACTION_LIBRARY: list[Action] = [
     Action(
         name="navigate_to_kitchen",
         preconditions={"robot_at": "!kitchen"},
@@ -47,12 +47,12 @@ _ACTION_LIBRARY: List[Action] = [
     ),
 ]
 
-_INTENT_GOALS: Dict[str, Dict[str, Any]] = {
+_INTENT_GOALS: dict[str, dict[str, Any]] = {
     "fetch_object": {"delivered": True},
 }
 
 
-def _preconditions_met(state: Dict[str, Any], preconditions: Dict[str, Any]) -> bool:
+def _preconditions_met(state: dict[str, Any], preconditions: dict[str, Any]) -> bool:
     for key, expected in preconditions.items():
         if isinstance(expected, str) and expected.startswith("!"):
             if state.get(key) == expected[1:]:
@@ -62,20 +62,20 @@ def _preconditions_met(state: Dict[str, Any], preconditions: Dict[str, Any]) -> 
     return True
 
 
-def _apply(state: Dict[str, Any], effects: Dict[str, Any]) -> Dict[str, Any]:
+def _apply(state: dict[str, Any], effects: dict[str, Any]) -> dict[str, Any]:
     new_state = dict(state)
     new_state.update(effects)
     return new_state
 
 
-def _goal_met(state: Dict[str, Any], goal: Dict[str, Any]) -> bool:
+def _goal_met(state: dict[str, Any], goal: dict[str, Any]) -> bool:
     return all(state.get(k) == v for k, v in goal.items())
 
 
 class GoapPlanner:
     """Breadth-first GOAP search over `_ACTION_LIBRARY`."""
 
-    def plan(self, intent: Intent, world_state: Dict[str, Any]) -> Plan:
+    def plan(self, intent: Intent, world_state: dict[str, Any]) -> Plan:
         goal = _INTENT_GOALS.get(intent.name)
         if goal is None:
             return Plan(intent=intent, actions=[])
@@ -83,7 +83,7 @@ class GoapPlanner:
         # BFS over (state, path) — fine for a handful of actions; swap for
         # A*/PDDL when the action library grows (roadmap Stage 5).
         start_state = dict(world_state)
-        queue: deque[tuple[Dict[str, Any], List[Action]]] = deque()
+        queue: deque[tuple[dict[str, Any], list[Action]]] = deque()
         queue.append((start_state, []))
         visited = {tuple(sorted(start_state.items()))}
 
