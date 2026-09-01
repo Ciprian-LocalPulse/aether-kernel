@@ -1,0 +1,85 @@
+# Dependabot version updates.
+# Kept deliberately conservative: weekly (not daily) checks, grouped
+# into one PR per ecosystem/directory, and a low open-PR cap — so this
+# doesn't flood the repo with individual bump PRs across four languages.
+#
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # --- Rust: kernel ---
+  - package-ecosystem: "cargo"
+    directory: "/kernel"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      kernel-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "rust"]
+
+  # --- Rust: sync-engine ---
+  - package-ecosystem: "cargo"
+    directory: "/sync-engine"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      sync-engine-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "rust"]
+
+  # --- Rust: sdk/rust ---
+  - package-ecosystem: "cargo"
+    directory: "/sdk/rust/aether-sdk"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      sdk-rust-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "rust"]
+
+  # --- Python: intent-router ---
+  - package-ecosystem: "pip"
+    directory: "/intent-router"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      intent-router-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "python"]
+
+  # --- Python: sdk/python ---
+  - package-ecosystem: "pip"
+    directory: "/sdk/python"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      sdk-python-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "python"]
+
+  # --- JS/TS: sdk/js ---
+  - package-ecosystem: "npm"
+    directory: "/sdk/js/aether-sdk"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      sdk-js-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "javascript"]
+
+  # --- GitHub Actions themselves (actions/checkout, etc.) ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions-dependencies:
+        patterns: ["*"]
+    labels: ["dependencies", "ci"]
