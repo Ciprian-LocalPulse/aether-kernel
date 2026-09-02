@@ -139,7 +139,7 @@ See [`AUTHORS.md`](AUTHORS.md).
 
 ## Citation
 
-If you reference this work academically, see [`docs/whitepaper/AETHER_KERNEL_BLUEPRINT.md#13-references`](docs/whitepaper/AETHER_KERNEL_BLUEPRINT.md) for the citation list, or cite this repository directly:
+If you reference this work academically, see [`docs/whitepaper/AETHER_KERNEL_BLUEPRINT.md#17-references`](docs/whitepaper/AETHER_KERNEL_BLUEPRINT.md) for the citation list, or cite this repository directly:
 
 ```
 Pleșca, C. Ș. (2026). Aether Kernel: A Distributed Spatial Operating System — Technical Blueprint. https://github.com/Ciprian-LocalPulse/aether-kernel

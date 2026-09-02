@@ -1,474 +1,364 @@
 # Aether Kernel — Technical Blueprint
 
-**A Distributed Spatial Operating System**
-**Author: Ciprian Ștefan Pleșca**
-**Version 0.9 (Draft for review) — 2026**
+**A Distributed Operating System for Spatial Computing, Robotics, and Physical-Digital Synchronization**
 
-## Table of contents
-
-1. [Introduction](#1-introduction)
-2. [Design principles](#2-design-principles)
-3. [General architecture](#3-general-architecture)
-4. [Microkernel Aether](#4-microkernel-aether)
-5. [Perception Engine](#5-perception-engine)
-6. [Temporal Sync Engine](#6-temporal-sync-engine)
-7. [Intent Router](#7-intent-router)
-8. [Security and identity model](#8-security-and-identity-model)
-9. [SDK and tooling](#9-sdk-and-tooling)
-10. [Incremental implementation strategy](#10-incremental-implementation-strategy)
-11. [Validation and testing plan](#11-validation-and-testing-plan)
-12. [Governance and ethical considerations](#12-governance-and-ethical-considerations)
-13. [References](#13-references)
+**Version 2.0 — Public Release Draft**
+**Author:** Ciprian Ștefan Pleșca
+**Document Reference:** AK-BLUEPRINT-2026-002
+**License of this document:** CC BY 4.0 (attribution required) — code samples: Apache-2.0
+**Status:** Draft for public repository, open review, and academic circulation
 
 ---
 
-## 1. Introduction
+### Copyright and authorship notice
 
-Today's augmented reality, robotics, and autonomous-vehicle stacks are
-fragmented. Every platform maintains its own model of the world, its own
-synchronization protocol, and its own data silo. This fragmentation
-prevents interoperability and creates barriers for developers.
+© 2026 Ciprian Ștefan Pleșca. All rights to the original architecture,
+naming ("Aether Kernel," "Aether Sync Protocol," "Intent Router"), and
+the text of this document are reserved to the author. This document is
+prepared for public release under an open license; redistribution and
+derivative technical work are permitted under the terms stated above,
+provided attribution to the original author is preserved in any fork,
+whitepaper, or derivative repository.
 
-Aether Kernel is a distributed, open-source operating system designed to
-provide a common layer of perception, synchronization, and action for all
-physical and digital devices. Its goal is to become the "Linux of the
-physical world": a neutral, secure foundation that any company or
-developer can build spatial applications on, without worrying about
-hardware integration or synchronization complexity.
+A note on what the document reference above is and is not: it is an
+internal document-control identifier, of the kind used to track
+versions across a repository — it is **not** a government patent
+number, a copyright office registration number, or any other official
+legal registration. No such registration exists because none has been
+filed. The practical path to formal protection, if wanted, is: (1) a
+notarized deposit or a cryptographic timestamp — committing this file
+to a public Git repository already produces a verifiable SHA hash with
+a timestamp, which is the closest thing to a free, real "registration"
+available today — and (2) optionally, registration of the text with a
+national copyright office (e.g. ORDA in Romania) for a small fee.
 
-This document presents the complete technical blueprint of the system,
-at a level of detail sufficient to guide implementation and to serve as a
-basis for academic publication and standardization work.
+---
 
-## 2. Design principles
+## Table of Contents
 
-The following principles guide every design decision:
+1. [Abstract](#1-abstract)
+2. [Problem Statement and Motivation](#2-problem-statement-and-motivation)
+3. [Related Work and Positioning](../architecture/RELATED_WORK.md)
+4. [Design Principles and Non-Goals](../architecture/NON_GOALS.md)
+5. [System Architecture Overview](#5-system-architecture-overview)
+6. [Layer II — Aether Microkernel](#6-layer-ii--aether-microkernel)
+7. [Layer III — Aether Runtime](#7-layer-iii--aether-runtime)
+8. [Layer IV — SDK and Developer Experience](#8-layer-iv--sdk-and-developer-experience)
+9. [Security, Identity, and Trust](#9-security-identity-and-trust)
+10. [Formal Verification Strategy](#10-formal-verification-strategy)
+11. [Failure Modes and Resilience Analysis](../architecture/FAILURE_MODES.md)
+12. [Repository Layout](../architecture/ARCHITECTURE.md)
+13. [Incremental Delivery Roadmap](../roadmap/ROADMAP.md)
+14. [Governance and Ethical Framework](../governance/GOVERNANCE.md)
+15. [Risk Register](../governance/RISK_REGISTER.md)
+16. [Glossary](#16-glossary)
+17. [References](#17-references)
+18. [Appendix A — Protocol Message Reference](#18-appendix-a--protocol-message-reference)
 
-1. **Openness and neutrality.** The core is open source (Apache 2.0). No
-   single actor owns or controls the entire system.
-2. **Security by design.** Component isolation, capabilities, minimized
-   attack surface. All raw sensor data is processed locally; only the
-   minimum necessary semantic representations are shared.
-3. **Ultra-low latency.** The spatial-synchronization target is under
-   10ms between nearby nodes, requiring optimized network protocols,
-   local prediction, and edge computing.
-4. **Planetary scalability.** The system must support billions of nodes
-   and millions of simultaneous users, via spatial sharding, selective
-   replication, and decentralized coordination.
-5. **Universal interoperability.** One API and one set of data formats
-   for any hardware, from AR glasses to industrial robots.
-6. **Privacy and user control.** Users retain full control of their data.
-   By default, raw data never leaves the device; sharing is granular and
-   requires explicit consent.
+Sections 3, 4, 11, 12, 13, 14, and 15 are maintained as standalone,
+independently-updatable documents (linked above) rather than duplicated
+here, so they stay in sync with the code and don't drift out of date
+inside a long static document.
 
-## 3. General architecture
+---
 
-Aether Kernel is organized into four main layers:
+## 1. Abstract
+
+Current augmented reality, robotics, and spatial computing systems are
+architecturally fragmented: each vendor maintains a proprietary world
+model, a proprietary synchronization protocol, and a proprietary
+security boundary. This fragmentation raises integration costs,
+prevents cross-vendor interoperability, and concentrates control of
+physical-world data in a small number of platform owners.
+
+Aether Kernel is proposed as an open, capability-secure, distributed
+operating system that provides three shared primitives across
+heterogeneous physical and digital nodes: (a) a semantic scene graph
+derived from local sensor fusion, (b) a low-latency, conflict-free
+synchronization substrate for that scene graph across a mesh network of
+nodes, and (c) an intent-routing layer that translates high-level human
+intent into coordinated multi-agent action. This document specifies the
+architecture, the wire protocols, the security model, a reference
+implementation strategy in Rust, C++, Python, and TypeScript, and an
+incremental delivery plan suitable for a small engineering team.
+
+## 2. Problem Statement and Motivation
+
+Three converging trends motivate this work:
+
+1. **Sensor ubiquity.** Cameras, LiDAR, IMUs, and radio sensors are now
+   inexpensive enough to be embedded in consumer devices at scale (AR
+   glasses, drones, home robots, vehicles), producing a continuous
+   stream of raw physical-world data with no shared representation.
+2. **Agent proliferation.** The number of autonomous or semi-autonomous
+   physical agents per household or workplace (robots, drones,
+   appliances) is increasing faster than the standards needed to
+   coordinate them.
+3. **Platform lock-in risk.** Absent an open substrate, the
+   physical-world equivalent of the early-2000s "walled garden"
+   internet is likely to re-emerge: a small number of vertically
+   integrated platforms, each with its own scene representation, sync
+   protocol, and permission model, competing for exclusive control of
+   ambient computing.
+
+The absence of an open, neutral, capability-secure layer analogous to
+what TCP/IP and Linux provided for networking and computing
+respectively is the gap this project addresses.
+
+See [Related Work and Positioning](../architecture/RELATED_WORK.md) for
+how this compares to seL4, ROS2/DDS, OpenXR/WebXR, Matter/Thread, and
+CRDT libraries, and [Design Principles and Non-Goals](../architecture/NON_GOALS.md)
+for what this project explicitly does not attempt to solve.
+
+## 5. System Architecture Overview
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│                     Aether Application Layer                   │
-│   (Spatial apps, games, enterprise tools, neural interfaces)   │
+│                  Layer IV — Application Layer                  │
+│   (Spatial apps, enterprise digital-twin tools, BCI interfaces)│
 ├───────────────────────────────────────────────────────────────┤
-│                     Aether SDK & Toolchain                     │
-│   (Rust / C++ / Python / JS, Scene Graph API, debugging tools) │
+│                  Layer IV — SDK & Toolchain                    │
+│   (Rust / C++ / Python / TypeScript, Scene Graph API)          │
 ├───────────────────────────────────────────────────────────────┤
-│                     Aether Runtime (per node)                  │
+│                  Layer III — Aether Runtime (per node)         │
 │   ┌───────────────────┐ ┌──────────────────┐ ┌───────────────┐│
 │   │ Perception Engine  │ │ Temporal Sync    │ │ Intent Router ││
-│   │ (sensor fusion,    │ │ Engine (CRDT,    │ │ (LLM,         ││
-│   │  SLAM, scene graph)│ │ QUIC, rollback)  │ │  planner)     ││
+│   │ (sensor fusion,    │ │ Engine (CRDT +   │ │ (NLU, planner,││
+│   │  SLAM, scene graph)│ │ HLC, QUIC)       │ │  executor)    ││
 │   └───────────────────┘ └──────────────────┘ └───────────────┘│
-│                     Aether Microkernel (capability-based)      │
-│   (IPC, scheduling, memory safety, driver isolation)           │
 ├───────────────────────────────────────────────────────────────┤
-│                     Hardware Abstraction Layer (HAL)           │
-│   (Drivers for cameras, LiDAR, IMU, radios, actuators, BCI)    │
+│                  Layer II — Aether Microkernel                 │
+│   (EDF + round-robin scheduler with admission control,         │
+│    zero-copy IPC, capability-based memory, isolated drivers)   │
+├───────────────────────────────────────────────────────────────┤
+│                  Layer I — Hardware Abstraction Layer (HAL)    │
+│   (Drivers for cameras, LiDAR, IMU, radios, actuators)         │
 └───────────────────────────────────────────────────────────────┘
 ```
 
-Every node (device) runs an Aether Runtime built on the microkernel.
-Nodes communicate through the Aether Sync protocol (§6), forming a
-global mesh network. An optional Cloud Orchestrator provides discovery,
-identity, and coordination services at scale, but is not required for
-basic operation.
+Each node runs an Aether Runtime atop the microkernel. Nodes
+communicate over the Aether Sync Protocol (§7.2), forming a global
+mesh. An optional Cloud Orchestrator provides discovery, identity
+resolution, and coordination at scale, but the system degrades
+gracefully to pure peer-to-peer operation in its absence.
 
-## 4. Microkernel Aether
+Reference implementation map: [`docs/architecture/ARCHITECTURE.md`](../architecture/ARCHITECTURE.md).
 
-### 4.1 Objectives
+## 6. Layer II — Aether Microkernel
 
-The microkernel is the foundation of security and performance. It must
-provide:
+### 6.1 Objectives
 
-- Strict isolation between components (drivers, services)
-- Fast IPC (sub-microsecond for small messages)
-- Deterministic scheduling for critical flows
-- Safe memory management
-- Support for extensions without compromising security
+The microkernel is the trusted computing base. It must guarantee:
+strict isolation between drivers and services; sub-microsecond IPC for
+small messages; deterministic scheduling for latency-critical
+perception/sync flows; memory safety without a garbage collector; and
+extensibility that never widens the trusted base.
 
-### 4.2 Approach
+### 6.2 Capability model with epoch-based revocation
 
-Inspired by seL4 (formally verified) and Zircon (Fuchsia), the Aether
-Microkernel is written in Rust, with critical sections in assembly where
-needed. It uses a **capability-based** model: every process receives
-only the capabilities necessary to access resources (memory, IPC ports,
-devices).
+Every resource (memory region, IPC port, device) is reached only
+through a `Capability` — an unforgeable token naming the resource and
+the rights held over it. Rights can only be *attenuated* on derivation,
+never amplified: `derive()` fails if the requested rights are not a
+subset of the parent's.
 
-Key components:
+Revocation uses a **per-target epoch counter** rather than a simple
+"delete the row from the table" scheme. Every capability snapshots its
+target's epoch at mint/derive time; `check()` compares that snapshot
+against the target's *current* epoch. Revoking any capability over a
+target bumps that target's epoch, which instantly invalidates **every**
+capability naming it — including derived children and any copy a
+process cached off-table. A naive delete-by-id scheme cannot provide
+this: a cached copy elsewhere would keep working until something
+re-checks it against the table.
 
-- **Scheduler:** Real-time priorities (EDF — Earliest Deadline First)
-  for perception and sync flows, plus a round-robin scheduler for
-  everything else.
-- **IPC:** Asynchronous message passing with zero-copy via shared memory
-  (`io_uring`, eBPF for filtering).
-- **Memory management:** Paging, address-space isolation, controlled
-  memory sharing between processes.
-- **Driver framework:** Drivers run in separate, sandboxed processes,
-  communicating with the kernel through capability ports. Each driver
-  has access only to the resources it needs (e.g. a camera driver cannot
-  access the network).
+Reference implementation: [`kernel/src/capability.rs`](../../kernel/src/capability.rs)
+(see the `revoking_target_invalidates_an_off_table_cached_copy` test for
+a concrete demonstration).
 
-### 4.3 Programmatic interfaces
+### 6.3 Scheduler with EDF admission control
 
-The microkernel exposes a minimal API:
+Real-time tasks (the perception pipeline, sync-engine ticks) are
+scheduled Earliest-Deadline-First; everything else is round-robin.
+Critically, a real-time task is not simply accepted onto the queue — it
+must pass an **admission-control test** first: the scheduler tracks the
+sum of admitted tasks' declared WCET budgets, and rejects a new task if
+admitting it would push total utilization over the schedulable bound
+(`U ≤ 1` within the configured period). A scheduler that always accepts
+real-time work can silently promise deadlines it cannot keep; rejecting
+overcommitment at admission time is safer than discovering a missed
+deadline later.
 
-```
-create_process(image, caps) -> ProcessId
-send(port, message)
-receive(port) -> message
-map_memory(process, vaddr, paddr, perms)
-create_capability(target, rights) -> Cap
-```
+Reference implementation: [`kernel/src/scheduler.rs`](../../kernel/src/scheduler.rs).
 
-All calls are capability-checked. Any unauthorized access attempt
-triggers an exception and process termination.
+### 6.4 IPC and system call surface
 
-### 4.4 Security
+Small control messages pass through a lock-free ring buffer;
+large payloads (camera frames, point clouds) are never copied through
+the kernel — the sender maps a shared-memory region and grants a
+read-only capability over it to the receiver, so the kernel only moves
+the capability, not the bytes. The minimal syscall surface:
+`create_process`, `send`, `receive`, `map_memory`, `create_capability`,
+`revoke_capability`.
 
-- **Formal verification.** Critical kernel parts (scheduler, IPC, memory
-  management) are designed to be amenable to formal verification with
-  tools such as Coq or Isabelle/HOL, similar to seL4.
-- **Sandboxing.** Every driver and service runs in a resource-limited
-  sandbox. An attack on one driver does not compromise the rest of the
-  system.
-- **OTA updates.** Cryptographically signed, with atomic rollback.
+Reference implementation: [`kernel/src/ipc.rs`](../../kernel/src/ipc.rs),
+[`kernel/src/process.rs`](../../kernel/src/process.rs).
 
-Reference implementation: [`kernel/`](../../kernel).
+## 7. Layer III — Aether Runtime
 
-## 5. Perception Engine
+### 7.1 Perception Engine
 
-### 5.1 Purpose
-
-The Perception Engine transforms raw sensor streams (cameras, LiDAR,
-IMU, etc.) into a shared **Semantic Scene Graph**: a graph containing
-objects with persistent identity, position, orientation, and physical
-and semantic properties.
-
-### 5.2 Internal architecture
-
-The Perception Engine is organized as a processing pipeline:
-
-```
-Sensors → Preprocessing → Sensor fusion → SLAM & mapping →
-   Semantic segmentation → Scene Graph
-```
-
-- **Preprocessing:** Calibration, noise filtering, temporal
-  synchronization of streams.
-- **Sensor fusion:** Combines data from multiple sources (e.g. LiDAR +
-  cameras) into a dense, precise 3D representation. Uses Extended Kalman
-  Filters (EKF) or factor graphs (GTSAM).
-- **SLAM & mapping:** Builds a local and global 3D map. Algorithms:
-  ORB-SLAM3, LIO-SAM, or deep-learning-based methods (e.g. DROID-SLAM).
-- **Semantic segmentation:** Identifies objects and assigns labels (e.g.
-  "chair", "table", "person"). Models: YOLOv8, Mask2Former, CLIP for
-  open-vocabulary segmentation.
-- **Scene Graph:** Builds a hierarchical structure — Space → Frame →
-  Object → Parts. Each object has a unique ID (UUID) and properties
-  (mass, material, function).
-
-### 5.3 Data representation
-
-The scene graph is serialized using USD (Universal Scene Description) or
-a custom binary format based on Cap'n Proto or FlatBuffers for
-efficiency. It includes: nodes (objects) with spatial transforms,
-semantic attributes (labels, physical properties), and relations between
-objects (part-of, on-top-of, etc.).
-
-### 5.4 Persistence and sharing
-
-Digital objects anchored in the real world (e.g. a virtual screen on a
-wall) have persistent IDs and are stored in a distributed database (e.g.
-DHT-based) so they can be found by any node.
+Pipeline: `Sensors → Preprocessing → Sensor Fusion (EKF/factor graph) →
+SLAM & Mapping (ORB-SLAM3/LIO-SAM) → Semantic Segmentation
+(YOLOv8/open-vocab CLIP) → Scene Graph`. Scene objects carry a stable
+UUID, a transform with a 6×6 pose covariance (for fusion weighting), a
+label, and a `part-of` parent relation. Wire representation targets
+Cap'n Proto for zero-copy deserialization on resource-constrained edge
+devices.
 
 Reference implementation: [`perception-engine/`](../../perception-engine).
 
-## 6. Temporal Sync Engine
+### 7.2 Temporal Sync Engine
 
-### 6.1 Problem
+**The Aether Sync Protocol** (`HELLO` / `SUBSCRIBE` / `PUBLISH` /
+`SYNC_STATE` / `HEARTBEAT` — full field reference in §18) runs over
+QUIC/WebTransport. Writes are represented as CRDT operations:
 
-Synchronizing a distributed scene graph across millions of nodes, with
-sub-10ms latency, requires a specialized protocol. Existing
-central-server-based solutions do not scale.
+- **`LwwRegister`**, for pose data, ordered by a **Hybrid Logical
+  Clock (HLC)** stamp rather than a raw wall-clock timestamp. A plain
+  `(timestamp, node_id)` pair has a real gap: under clock skew, a
+  causally-later write can carry an earlier wall-clock value and
+  incorrectly lose a merge. HLC fixes this by carrying a logical
+  counter alongside physical time and advancing it whenever a node
+  observes a remote stamp ahead of what its own physical clock alone
+  would suggest — merge order never contradicts causal order,
+  regardless of skew. Reference: Kulkarni et al. (2014); implementation
+  in [`sync-engine/src/hlc.rs`](../../sync-engine/src/hlc.rs), used by
+  [`sync-engine/src/crdt.rs`](../../sync-engine/src/crdt.rs).
+- **`OrSet`**, for tag/attribute collections, where naive LWW would
+  incorrectly resurrect deleted elements.
 
-### 6.2 Approach
+**Spatial sharding** partitions the global space into cells
+(conceptually S2 cells) at a configurable level; each cell has a
+replica set responsible for synchronizing objects within it, which is
+what lets the system scale sublinearly — a node only needs to track the
+cells it currently occupies, not the entire planet's state. Reference:
+[`sync-engine/src/sharding.rs`](../../sync-engine/src/sharding.rs).
 
-The Temporal Sync Engine combines:
+### 7.3 Intent Router
 
-- **CRDTs** (Conflict-free Replicated Data Types) allowing concurrent
-  updates without central coordination.
-- **Distributed authority:** Each object has an "owner" (the node that
-  created it, or the nearest one). The owner processes writes; other
-  nodes apply optimistically and roll back if necessary.
-- **Spatial sharding:** The global space is divided into cells (e.g. S2
-  cells at various levels). Each cell has a set of "replicas" responsible
-  for synchronizing objects within it.
-
-### 6.3 The Aether Sync protocol
-
-A binary protocol over QUIC/WebTransport, with messages:
-
-- `HELLO` — handshake, version and capability negotiation
-- `SUBSCRIBE(cell_id)` — subscribe to a spatial cell
-- `PUBLISH(object_id, operation)` — send a CRDT operation (e.g. position
-  update, attribute add)
-- `SYNC_STATE(vector_clock)` — request an object's current state
-- `HEARTBEAT` — keep the connection alive, measure latency
-
-CRDT operations are defined for the relevant data types:
-
-- **Last-Writer-Wins Register** for position/orientation (timestamped)
-- **Observed-Remove Set** for collections (e.g. tags)
-- **Counter** for statistics
-
-### 6.4 Prediction and rollback
-
-To reach the target latency, every node applies operations locally
-immediately, then reconciles with the authoritative state. On conflict,
-a local rollback occurs (e.g. an object snaps back). Motion prediction
-uses simple models (constant velocity) or learned ones.
-
-### 6.5 Network
-
-- **Transport:** QUIC (via Rust libraries such as `quinn`), with
-  multiplexing, 0-RTT, and connection migration support.
-- **Topology:** Initially, nodes connect to a set of edge "relays"
-  (Cloudflare, Fastly) for discovery, then can form direct P2P
-  connections (via ICE/STUN/TURN).
-- **Optimization:** Grouping geographically close nodes to reduce
-  traffic.
-
-Reference implementation: [`sync-engine/`](../../sync-engine).
-
-## 7. Intent Router
-
-### 7.1 Purpose
-
-The Intent Router translates high-level human intent (expressed via
-voice, text, gestures, or neural signals) into concrete actions across
-the Aether network. Examples:
-
-- *"Take me to the nearest charging station"* → an autonomous vehicle
-  receives a route.
-- *"Show me how to fix this engine"* → AR glasses display step-by-step
-  instructions.
-- *"Bring me a glass of water"* → a robot locates a glass, fills it, and
-  delivers it.
-
-### 7.2 Architecture
-
-The Intent Router has three components:
-
-1. **Natural Language Understanding (NLU):** Transforms user input into a
-   structured semantic representation (intent + entities). Based on LLMs
-   (GPT-4, Llama 3) fine-tuned for the spatial domain.
-2. **Planner:** Generates an action plan using automated planning
-   techniques (PDDL, GOAP, Behavior Trees). The plan specifies which
-   objects must be manipulated, which devices controlled, and which
-   conditions checked.
-3. **Executor:** Translates the plan into concrete commands for the
-   relevant devices, via the Aether APIs, monitoring progress and
-   adjusting in real time.
-
-### 7.3 Integration with the Scene Graph
-
-The Intent Router uses the scene graph to resolve spatial references
-(e.g. "the nearest glass") and to understand context (e.g. the user is
-in the kitchen). It can also query other nodes for capabilities (e.g. a
-robot that can grasp objects).
-
-### 7.4 Multi-agent coordination
-
-When a task spans multiple devices (e.g. a robot and a vehicle), the
-Intent Router negotiates task allocation using coordination protocols
-(e.g. Contract Net Protocol). Each agent declares its capabilities and
-costs, and a dynamically-chosen arbiter distributes the tasks.
+`User input (voice/text/gesture) → NLU → structured Intent → Planner
+(GOAP/PDDL/Behavior Trees) → Plan → Executor → device commands`, with a
+Contract-Net-style negotiation step when a task spans multiple agents:
+each capable agent bids a cost estimate, and the (per-task, not fixed)
+coordinator assigns to the lowest bidder.
 
 Reference implementation: [`intent-router/`](../../intent-router).
 
-## 8. Security and identity model
+## 8. Layer IV — SDK and Developer Experience
 
-### 8.1 Decentralized identity
+Four SDKs share one wire protocol and one scene representation:
 
-Every user, device, and digital object has a W3C-standard **DID**
-(Decentralized Identifier). DIDs are anchored in a public registry (e.g.
-a lightweight blockchain or DAG) but can be resolved locally via cache.
+| SDK | Primary use case |
+|---|---|
+| Rust | Kernel-adjacent, maximum performance |
+| Python | Research, rapid prototyping, ML integration |
+| TypeScript | Browser-based AR via WebXR |
+| C++ | Game-engine integration (Unreal) and industrial robotics |
 
-Authentication happens via WebAuthn or hardware keys. Users can delegate
-limited capabilities to other entities (e.g. a delivery robot only gets
-access to the front door).
+Common API surface: `connect`, `create_object`, `update_object`,
+`subscribe`, `send_intent` — see [`sdk/`](../../sdk) for all four
+implementations.
 
-### 8.2 Capability tokens
+## 9. Security, Identity, and Trust
 
-Access to objects and services is controlled via **capability tokens**
-(macaroons). A token specifies: the target object/service, the granted
-permissions (read, write, execute), a validity period, and contextual
-conditions (e.g. only while the user is present). Tokens are issued by
-the resource owner and can be revoked at any time.
+- **Decentralized identity.** Every user, device, and digital object
+  holds a W3C DID, resolvable via a lightweight public registry, cached
+  locally for offline resolution.
+- **Capability tokens (macaroons).** Cross-node access grants are
+  scoped to a resource, a permission set, a time window, and optional
+  contextual predicates; attenuable and revocable at any point by the
+  issuer.
+- **Data minimization by construction.** Raw sensor streams never leave
+  the originating device; only derived semantic facts are shared, and
+  only to the extent the user's sharing policy allows.
+- **Transport security.** All inter-node traffic is end-to-end
+  encrypted.
+- **Auditability.** Every mutation to a shared object is appended to a
+  hash-chained, tamper-evident log.
 
-### 8.3 Privacy
+Full detail: [`security/SECURITY_MODEL.md`](../../security/SECURITY_MODEL.md),
+[`security/THREAT_MODEL.md`](../../security/THREAT_MODEL.md),
+[`security/identity/DID_SCHEME.md`](../../security/identity/DID_SCHEME.md).
 
-Fundamental principle: **raw sensor data never leaves the device**. The
-Perception Engine processes locally and produces only semantic
-representations (e.g. "a person exists at coordinates X,Y,Z", not the
-video stream). The user chooses how much to share. End-to-end encryption
-is used for all messages; differential privacy techniques can be applied
-to statistical aggregates.
+## 10. Formal Verification Strategy
 
-### 8.4 Audit and transparency
+Following the precedent set by seL4, the microkernel's scheduler, IPC
+path, and capability-check logic are the highest-value targets for
+formal verification, because a defect there compromises every layer
+above it.
 
-All actions affecting shared objects are recorded in an immutable log
-(hash chain) for auditing. Users can see who accessed what data.
+1. Specify the capability invariant — "a process can only ever reach a
+   resource through a capability whose rights are a subset of what was
+   originally granted, and revocation is immediately effective" — in a
+   proof assistant (Coq or Isabelle/HOL).
+2. Extract or refine the Rust implementation against that specification
+   incrementally, starting with `kernel/src/capability.rs`, before
+   extending to the scheduler and IPC ring buffer.
+3. Treat drivers and the Perception/Sync/Intent runtime as untrusted
+   from the kernel's point of view — sandboxed, not verified — which
+   keeps the verification burden bounded to a small trusted computing
+   base rather than the entire codebase.
 
-Full detail: [`security/`](../../security).
+## 16. Glossary
 
-## 9. SDK and tooling
+- **CRDT** — Conflict-free Replicated Data Type; a data structure that
+  guarantees convergent merges without coordination.
+- **HLC** — Hybrid Logical Clock; combines wall-clock time with a
+  logical counter for causal ordering under clock skew.
+- **DID** — Decentralized Identifier (W3C standard).
+- **Capability (security)** — an unforgeable token that both names a
+  resource and grants specific rights over it.
+- **S2 Cell** — a hierarchical spatial indexing scheme used to shard
+  geographic space into addressable cells.
+- **EDF** — Earliest Deadline First, a real-time scheduling algorithm.
 
-### 9.1 SDKs
+## 17. References
 
-SDKs are offered in multiple languages:
+1. Klein, G. et al. (2010). *seL4: Formal verification of an OS
+   kernel.* Communications of the ACM.
+2. Shapiro, M., Preguiça, N., Baquero, C., & Zawirski, M. (2011).
+   *Conflict-free replicated data types.* SSS.
+3. Langley, A. et al. (2017). *The QUIC transport protocol: Design and
+   Internet-scale deployment.* SIGCOMM.
+4. Mur-Artal, R., Montiel, J. M. M., & Tardós, J. D. (2021).
+   *ORB-SLAM3.* IEEE Transactions on Robotics.
+5. Redmon, J. et al. (2023). *YOLOv8.* arXiv preprint.
+6. W3C (2022). *Decentralized Identifiers (DIDs) v1.0.* W3C
+   Recommendation.
+7. Pixar (2023). *Universal Scene Description (USD).* OpenUSD
+   documentation.
+8. Kulkarni, S. et al. (2014). *Logical Physical Clocks and Consistent
+   Snapshots in Globally Distributed Databases.* (Hybrid Logical
+   Clocks.)
 
-- **Rust** — for maximum performance and direct kernel integration.
-- **C++** — for integration with game engines (Unreal Engine) and
-  robotics.
-- **Python** — for rapid prototyping and research.
-- **JavaScript/TypeScript** — for web and browser-based AR apps
-  (WebXR).
+## 18. Appendix A — Protocol Message Reference
 
-All SDKs expose the same core API:
+| Message | Direction | Fields | Purpose |
+|---|---|---|---|
+| `HELLO` | Node → Relay | version, capabilities[] | Handshake, protocol negotiation |
+| `HELLO_ACK` | Relay → Node | assigned_node_id, relay_capabilities[] | Confirms handshake |
+| `SUBSCRIBE` | Node → Relay | cell_id | Subscribe to updates in a spatial cell |
+| `UNSUBSCRIBE` | Node → Relay | cell_id | Stop receiving updates |
+| `PUBLISH` | Node → Relay | object_id, operation, hlc_timestamp | Broadcast a CRDT operation |
+| `SYNC_STATE` | Node → Relay | vector_clock | Request full reconciliation |
+| `SYNC_STATE_RESPONSE` | Relay → Node | objects[], vector_clock | Authoritative state snapshot |
+| `HEARTBEAT` | Bidirectional | sequence_no, sent_at_ns | Keep-alive and RTT measurement |
 
-```
-connect() -> AetherClient
-create_object(parent, transform, properties) -> ObjectId
-update_object(id, properties)
-subscribe(cell_id, callback)
-send_intent(text, context)
-```
-
-### 9.2 Simulator
-
-For development without physical hardware, a simulator based on NVIDIA
-Omniverse or Godot Engine is offered. It allows creating virtual scenes,
-simulating sensors, and testing applications in controlled environments,
-with tooling for measuring latency and consistency.
-
-### 9.3 Debugging tools
-
-- **Scene Graph Inspector** — visualizes object hierarchy, properties,
-  and versions.
-- **Network Analyzer** — shows protocol messages, latency, packet loss.
-- **Permission Auditor** — verifies correct token usage.
-
-Reference implementation: [`sdk/`](../../sdk).
-
-## 10. Incremental implementation strategy
-
-Given resource constraints, we propose an incremental approach with
-clear stages and minimal deliverables — see
-[`docs/roadmap/ROADMAP.md`](../roadmap/ROADMAP.md) for the concrete,
-up-to-date plan and current status. In summary:
-
-- **Stage 0 — Foundation** (0–6 months, team of 3–5): microkernel
-  prototype, basic CRDT sync protocol, basic simulator. Deliverable: two
-  instances sync a 3D cube's position with sub-100ms latency.
-- **Stage 1 — Basic perception** (+6–12 months): real camera + SLAM
-  integration, local scene graph with detected objects. Deliverable: two
-  users see the same detected objects update in real time.
-- **Stage 2 — Scalable sync engine** (+12–18 months): spatial sharding,
-  QUIC/P2P, sub-10ms local-network latency. Deliverable: 1,000-node
-  stress test.
-- **Stage 3 — SDK & tooling** (+18–24 months): stable APIs, advanced
-  simulator, documentation. Deliverable: public developer beta.
-- **Stage 4 — Security & identity** (+24–30 months): DIDs, capability
-  tokens, end-to-end encryption, security audit. Deliverable: 1.0
-  release with full security.
-- **Stage 5 — Intent Router** (+30–36 months): open-source LLM
-  integration, planner/executor, robot arm connection. Deliverable: full
-  voice-controlled robot demo.
-
-## 11. Validation and testing plan
-
-- **Unit testing.** Every module (kernel, CRDT, perception) has unit
-  tests (`cargo test` for Rust, `pytest` for Python, C++ test binaries).
-- **Integration testing.** Tests combining multiple components, run in a
-  virtual environment (CI).
-- **Performance testing.** Benchmarks for IPC, sync, perception —
-  latency, throughput, CPU/memory usage.
-- **Security testing.** Fuzzing (`cargo-fuzz`) for parsers and
-  protocols; third-party penetration testing; formal verification of
-  critical kernel parts.
-- **Field testing.** Pilot tests with real users in controlled
-  environments (a robotics lab, a museum); feedback collection and
-  iteration.
-
-## 12. Governance and ethical considerations
-
-### 12.1 Governance
-
-Aether Kernel is intended to be governed by a non-profit foundation
-(e.g. an "Aether Foundation"), with a council representing the
-community, industry, and academia. Technical decisions are made through
-open processes with public RFCs. License: Apache 2.0 for the core, with
-the possibility of adding commercial modules under separate licenses.
-See [`docs/governance/GOVERNANCE.md`](../governance/GOVERNANCE.md) for
-the current, pre-foundation governance model.
-
-### 12.2 Ethics
-
-- **Privacy:** the system is designed to minimize personal data
-  collection; any collection requires explicit consent.
-- **Equitable access:** efforts will be made to ensure technology access
-  for underserved communities.
-- **Transparency:** perception and decision algorithms are documented
-  and, where possible, open source.
-- **Accountability:** clear mechanisms are established for
-  accountability in case of failure or misuse.
-
-## 13. References
-
-1. Klein, G. et al. "seL4: Formal verification of an OS kernel."
-   *Communications of the ACM*, 2010.
-2. Shapiro, M. et al. "Conflict-free replicated data types." *SSS*,
-   2011.
-3. Langley, A. et al. "The QUIC transport protocol: Design and
-   Internet-scale deployment." *SIGCOMM*, 2017.
-4. Mur-Artal, R. et al. "ORB-SLAM3: An accurate open-source library for
-   visual, visual-inertial and multi-map SLAM." *IEEE Transactions on
-   Robotics*, 2021.
-5. Redmon, J. et al. "YOLO: You only look once." *arXiv preprint*
-   (YOLOv8 lineage), 2023.
-6. W3C. "Decentralized Identifiers (DIDs) v1.0." W3C Recommendation,
-   2022.
-7. Pixar. "Universal Scene Description (USD)." OpenUSD, 2023.
-8. Cloudflare. "Workers: Serverless computing at the edge." Cloudflare
-   Docs, 2024.
-9. NVIDIA. "Isaac ROS: Hardware-accelerated robotics." NVIDIA Developer,
-   2023.
-10. Pleșca, C. Ș. "Aether Kernel Whitepaper." Draft, 2026 (this
-    document).
+Current implementation status of this message set:
+[`sync-engine/src/protocol.rs`](../../sync-engine/src/protocol.rs).
 
 ---
 
-*This blueprint is a living document and a starting point. It is
-extended as the implementation in this repository progresses — see
-[`docs/roadmap/ROADMAP.md`](../roadmap/ROADMAP.md) for current status.*
+*This blueprint is a living document. Corrections, RFCs, and pull
+requests are welcome — see [`CONTRIBUTING.md`](../../CONTRIBUTING.md).*

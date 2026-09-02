@@ -4,6 +4,11 @@ This document maps the conceptual architecture from
 [`docs/whitepaper/AETHER_KERNEL_BLUEPRINT.md`](../whitepaper/AETHER_KERNEL_BLUEPRINT.md)
 onto the actual code in this repository, module by module.
 
+See also: [Related Work and Positioning](RELATED_WORK.md),
+[Design Principles and Non-Goals](NON_GOALS.md),
+[Failure Modes and Resilience Analysis](FAILURE_MODES.md), and the
+[Risk Register](../governance/RISK_REGISTER.md).
+
 ## Layered view
 
 ```
@@ -30,8 +35,8 @@ onto the actual code in this repository, module by module.
 
 | Blueprint concept (§4) | Code |
 |---|---|
-| Capability-based access control | `kernel/src/capability.rs::CapabilityTable` |
-| EDF real-time + best-effort scheduling | `kernel/src/scheduler.rs::Scheduler` |
+| Capability-based access control, with per-target epoch revocation | `kernel/src/capability.rs::CapabilityTable` |
+| EDF real-time + best-effort scheduling, with admission control | `kernel/src/scheduler.rs::Scheduler` |
 | Async zero-copy IPC | `kernel/src/ipc.rs::IpcBus` (models the *semantics*; shared-memory zero-copy is a Stage 2 implementation detail) |
 | Process lifecycle / minimal syscall API | `kernel/src/process.rs::ProcessTable` |
 | Address-space isolation | `kernel/src/memory.rs::MemoryManager` (policy layer; real MMU integration is Stage 2+) |
@@ -50,7 +55,7 @@ onto the actual code in this repository, module by module.
 
 | Blueprint concept (§6) | Code |
 |---|---|
-| CRDTs (LWW-Register for pose, OR-Set for tags) | `src/crdt.rs` |
+| CRDTs (LWW-Register ordered by HLC for pose, OR-Set for tags) | `src/crdt.rs`, `src/hlc.rs` |
 | Wire protocol (`HELLO`/`SUBSCRIBE`/`PUBLISH`/`SYNC_STATE`/`HEARTBEAT`) | `src/protocol.rs` |
 | Spatial sharding (S2-cell-style) | `src/sharding.rs` |
 | Transport abstraction (QUIC target) | `src/network.rs::Transport` |

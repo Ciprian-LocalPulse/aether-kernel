@@ -1,7 +1,8 @@
 //! CRDT primitives used by the scene graph: a Last-Writer-Wins register
 //! for pose/transform data, and an Observed-Remove Set for tag/attribute
-//! collections. Blueprint reference: §6.2, §6.3.
+//! collections. Blueprint reference: §6.2, §6.3, §8.2.
 
+use crate::hlc::Hlc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -18,27 +19,29 @@ pub mod uuid_stub {
 }
 
 /// Last-Writer-Wins register: used for pose (position/orientation) data,
-/// where the freshest timestamped write always wins on merge. Timestamps
-/// should be Hybrid Logical Clocks in production; a plain `u64` "logical
-/// time" stands in here.
+/// where the freshest write always wins on merge. Ordered by a Hybrid
+/// Logical Clock stamp (see `crate::hlc`) rather than a raw wall-clock
+/// timestamp, so merges stay causally correct even under clock skew
+/// between nodes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LwwRegister<T: Clone> {
     pub value: T,
-    pub timestamp: u64,
-    pub writer_node: u64,
+    pub stamp: Hlc,
 }
 
 impl<T: Clone> LwwRegister<T> {
-    pub fn new(value: T, timestamp: u64, writer_node: u64) -> Self {
-        Self { value, timestamp, writer_node }
+    pub fn new(value: T, stamp: Hlc) -> Self {
+        Self { value, stamp }
     }
 
-    /// Merge an incoming update. Ties on timestamp are broken by node id
-    /// (deterministic, so all replicas converge to the same winner).
+    /// Merge an incoming update. `Hlc`'s total order (physical time,
+    /// then logical counter, then node id as a final tiebreaker) makes
+    /// this pure, commutative, and idempotent — the defining CRDT
+    /// property — while also guaranteeing the winner is never a
+    /// causally-earlier write, which a raw-timestamp comparison cannot
+    /// guarantee under clock skew.
     pub fn merge(&mut self, other: LwwRegister<T>) {
-        let other_wins = (other.timestamp, other.writer_node)
-            > (self.timestamp, self.writer_node);
-        if other_wins {
+        if other.stamp > self.stamp {
             *self = other;
         }
     }
@@ -94,16 +97,16 @@ mod tests {
 
     #[test]
     fn lww_register_prefers_later_timestamp() {
-        let mut a = LwwRegister::new((0.0, 0.0, 0.0), 1, 1);
-        let b = LwwRegister::new((1.0, 1.0, 1.0), 2, 1);
+        let mut a = LwwRegister::new((0.0, 0.0, 0.0), Hlc::new(1, 0, 1));
+        let b = LwwRegister::new((1.0, 1.0, 1.0), Hlc::new(2, 0, 1));
         a.merge(b.clone());
         assert_eq!(a.value, b.value);
     }
 
     #[test]
     fn lww_register_ignores_stale_write() {
-        let mut a = LwwRegister::new((5.0, 5.0, 5.0), 10, 1);
-        let stale = LwwRegister::new((0.0, 0.0, 0.0), 3, 1);
+        let mut a = LwwRegister::new((5.0, 5.0, 5.0), Hlc::new(10, 0, 1));
+        let stale = LwwRegister::new((0.0, 0.0, 0.0), Hlc::new(3, 0, 1));
         a.merge(stale);
         assert_eq!(a.value, (5.0, 5.0, 5.0));
     }

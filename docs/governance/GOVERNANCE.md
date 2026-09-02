@@ -56,3 +56,9 @@ Per blueprint §12.2, the project commits to:
 * **Accountability** — see [`SECURITY.md`](../../SECURITY.md) for the
   vulnerability disclosure process, which doubles as the project's
   incident-accountability channel until a formal governance body exists.
+
+## Project risks
+
+Project-level (non-security) risks — adoption, competition, key-person
+dependency — are tracked separately in the
+[Risk Register](RISK_REGISTER.md).

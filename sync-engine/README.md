@@ -10,6 +10,7 @@ and per-object owner authority. Blueprint reference:
 | File | Responsibility |
 |---|---|
 | `crdt.rs` | `LwwRegister` (pose) and `OrSet` (tag/collection) CRDT primitives |
+| `hlc.rs` | Hybrid Logical Clock — the stamp type `LwwRegister` orders on, immune to clock-skew reordering |
 | `protocol.rs` | Aether Sync wire protocol (`HELLO`, `SUBSCRIBE`, `PUBLISH`, `SYNC_STATE`, `HEARTBEAT`) |
 | `sharding.rs` | Spatial cell IDs and subscription routing |
 | `network.rs` | Transport trait + an in-memory transport for tests (QUIC binding is a roadmap item) |

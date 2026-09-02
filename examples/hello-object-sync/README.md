@@ -3,9 +3,12 @@
 The Stage 0 exit-criterion demo from
 [`docs/roadmap/ROADMAP.md`](../../docs/roadmap/ROADMAP.md): two
 independent processes ("Node A" and "Node B") each hold a CRDT
-`LwwRegister` representing a cube's position, exchange updates through
+`LwwRegister` representing a cube's position, ordered by Hybrid Logical
+Clock (HLC) stamps (`sync-engine/src/hlc.rs`), exchange updates through
 the `sync-engine`'s `InMemoryTransport` (a real QUIC transport is a
-Stage 2 roadmap item), and converge to the same state.
+Stage 2 roadmap item), and converge to the same state regardless of
+delivery order — and regardless of clock skew between the two nodes,
+which a raw wall-clock timestamp cannot guarantee.
 
 This intentionally uses the in-memory test transport rather than a real
 network socket — the goal at this stage is to prove the **CRDT
@@ -21,13 +24,13 @@ cd rust-node-a && cargo run
 ```
 
 ```
-[node-a] local cube position: (0, 0, 0) @ t=0
-[node-a] applying local move -> (1, 0, 0) @ t=1
-[node-a] received remote update from node-b -> (1, 2, 0) @ t=2
-[node-a] converged state: (1, 2, 0)
+[node-a] local cube position: (0.0, 0.0, 0.0) @ Hlc { physical_ns: 0, logical: 1, node_id: 1 }
+[node-a] applying local move -> (1.0, 0.0, 0.0) @ Hlc { physical_ns: 1, logical: 0, node_id: 1 }
+[node-a] received remote update from node-b -> (1.0, 2.0, 0.0) @ Hlc { physical_ns: 2, logical: 0, node_id: 2 }
+[node-a] converged state: (1.0, 2.0, 0.0)
 ```
 
 `rust-node-b` mirrors the same flow from the other side. Run both and
 compare their final printed state — they converge to the identical
-`(1, 2, 0)` despite applying updates in a different order, which is
-exactly the point of using a CRDT here.
+`(1.0, 2.0, 0.0)` despite applying updates in a different order, which
+is exactly the point of using a CRDT ordered by HLC stamps here.

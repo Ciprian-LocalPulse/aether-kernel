@@ -24,6 +24,8 @@ pub enum KernelError {
     CapabilityNotFound(CapabilityId),
     #[error("access denied: missing rights {needed:?} on capability {cap:?}")]
     AccessDenied { cap: CapabilityId, needed: Rights },
+    #[error("capability revoked (target epoch advanced past this capability's snapshot): {0:?}")]
+    CapabilityRevoked(CapabilityId),
     #[error("process not found: {0:?}")]
     ProcessNotFound(ProcessId),
     #[error("port not found or closed")]

@@ -6,11 +6,13 @@
 //! Copyright 2026 Ciprian Ștefan Pleșca — Apache License 2.0
 
 pub mod crdt;
+pub mod hlc;
 pub mod network;
 pub mod protocol;
 pub mod sharding;
 
 pub use crdt::{LwwRegister, ObjectId, OrSet};
+pub use hlc::{Hlc, HybridLogicalClock};
 pub use protocol::{SyncMessage, VectorClock};
 pub use sharding::CellId;
 
@@ -20,8 +22,8 @@ pub enum SyncError {
     ObjectNotFound(ObjectId),
     #[error("transport error: {0}")]
     Transport(String),
-    #[error("stale write rejected (incoming ts {incoming} <= current {current})")]
-    StaleWrite { incoming: u64, current: u64 },
+    #[error("stale write rejected: incoming stamp is not causally after the current one")]
+    StaleWrite,
 }
 
 pub type SyncResult<T> = Result<T, SyncError>;

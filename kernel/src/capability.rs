@@ -29,15 +29,25 @@ bitflags! {
 
 /// A single capability: a reference to a kernel object plus the rights
 /// the holder has over it.
+///
+/// `epoch` is a snapshot of the target's revocation epoch at the moment
+/// this capability was minted or derived. Revoking *any* capability over
+/// a target bumps that target's current epoch — which instantly
+/// invalidates every capability pointing at it, including copies the
+/// kernel never explicitly tracked (e.g. a value a process cached
+/// off-table). This closes a real gap in a naive "delete the row from
+/// the table" revocation scheme: a cached copy elsewhere would otherwise
+/// keep working until something re-checks it against the table.
 #[derive(Debug, Clone)]
 pub struct Capability {
     pub id: CapabilityId,
     pub target: CapabilityTarget,
     pub rights: Rights,
+    pub epoch: u32,
 }
 
 /// What kind of kernel object a capability names.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CapabilityTarget {
     MemoryRegion(u64),
     IpcPort(u64),
@@ -52,6 +62,9 @@ pub enum CapabilityTarget {
 pub struct CapabilityTable {
     next_id: u64,
     entries: HashMap<CapabilityId, Capability>,
+    /// Current revocation epoch per target. Bumping a target's epoch
+    /// invalidates every capability (tracked or not) that names it.
+    target_epoch: HashMap<CapabilityTarget, u32>,
 }
 
 impl CapabilityTable {
@@ -59,20 +72,25 @@ impl CapabilityTable {
         Self::default()
     }
 
+    fn current_epoch(&mut self, target: &CapabilityTarget) -> u32 {
+        *self.target_epoch.entry(target.clone()).or_insert(0)
+    }
+
     /// Mint a brand-new capability. Only the kernel itself calls this,
     /// typically when a resource (memory region, port, device) is created.
     pub fn mint(&mut self, target: CapabilityTarget, rights: Rights) -> Capability {
         self.next_id += 1;
         let id = CapabilityId(self.next_id);
-        let cap = Capability { id, target, rights };
+        let epoch = self.current_epoch(&target);
+        let cap = Capability { id, target, rights, epoch };
         self.entries.insert(id, cap.clone());
         cap
     }
 
     /// Derive a new, weaker capability from an existing one. Fails if the
-    /// parent doesn't hold `Rights::GRANT` or if `rights` is not a subset
+    /// parent doesn't hold `Rights::GRANT`, if `rights` is not a subset
     /// of the parent's rights (capabilities can only be attenuated, never
-    /// amplified).
+    /// amplified), or if the parent itself has already been revoked.
     pub fn derive(
         &mut self,
         parent: CapabilityId,
@@ -84,12 +102,7 @@ impl CapabilityTable {
             .ok_or(crate::KernelError::CapabilityNotFound(parent))?
             .clone();
 
-        if !parent_cap.rights.contains(Rights::GRANT) {
-            return Err(crate::KernelError::AccessDenied {
-                cap: parent,
-                needed: Rights::GRANT,
-            });
-        }
+        self.check(parent, Rights::GRANT)?;
         if !parent_cap.rights.contains(rights) {
             return Err(crate::KernelError::AccessDenied {
                 cap: parent,
@@ -100,15 +113,30 @@ impl CapabilityTable {
         Ok(self.mint(parent_cap.target, rights))
     }
 
+    /// Revoke a capability's target. This bumps the *target's* epoch,
+    /// which invalidates every capability over that target — not just
+    /// `id` — including any derived children and any copy a process
+    /// cached outside the table. This is the property a naive
+    /// "remove one row" revocation scheme cannot provide.
     pub fn revoke(&mut self, id: CapabilityId) {
+        if let Some(cap) = self.entries.get(&id).cloned() {
+            let epoch = self.target_epoch.entry(cap.target.clone()).or_insert(0);
+            *epoch += 1;
+        }
         self.entries.remove(&id);
     }
 
-    pub fn check(&self, id: CapabilityId, needed: Rights) -> Result<(), crate::KernelError> {
+    pub fn check(&mut self, id: CapabilityId, needed: Rights) -> Result<(), crate::KernelError> {
         let cap = self
             .entries
             .get(&id)
-            .ok_or(crate::KernelError::CapabilityNotFound(id))?;
+            .ok_or(crate::KernelError::CapabilityNotFound(id))?
+            .clone();
+
+        let current = self.current_epoch(&cap.target);
+        if cap.epoch != current {
+            return Err(crate::KernelError::CapabilityRevoked(id));
+        }
         if !cap.rights.contains(needed) {
             return Err(crate::KernelError::AccessDenied { cap: id, needed });
         }
@@ -140,5 +168,55 @@ mod tests {
         );
         let child = table.derive(parent.id, Rights::READ).unwrap();
         assert!(table.check(child.id, Rights::READ).is_ok());
+    }
+
+    #[test]
+    fn revoking_target_invalidates_every_capability_over_it() {
+        let mut table = CapabilityTable::new();
+        let parent = table.mint(
+            CapabilityTarget::MemoryRegion(0),
+            Rights::READ | Rights::GRANT,
+        );
+        let child = table.derive(parent.id, Rights::READ).unwrap();
+
+        table.revoke(parent.id);
+
+        // The child was never revoked directly, but it named the same
+        // target — its epoch is now stale, so it must be rejected too.
+        assert!(matches!(
+            table.check(child.id, Rights::READ),
+            Err(crate::KernelError::CapabilityRevoked(_))
+        ));
+    }
+
+    #[test]
+    fn revoking_target_invalidates_an_off_table_cached_copy() {
+        // Simulates a process that cached a `Capability` value directly
+        // (e.g. stored the struct, not just re-checked the id every
+        // time) — the exact scenario a "delete the row" scheme misses.
+        let mut table = CapabilityTable::new();
+        let cap = table.mint(CapabilityTarget::Device("camera0".into()), Rights::READ);
+        let cached_copy = cap.clone();
+
+        table.revoke(cap.id);
+
+        let current = table.current_epoch(&cached_copy.target);
+        assert_ne!(
+            cached_copy.epoch, current,
+            "cached copy's epoch must be stale after revocation"
+        );
+    }
+
+    #[test]
+    fn fresh_capability_over_a_previously_revoked_target_is_valid() {
+        // After revocation, minting a *new* capability over the same
+        // target picks up the current (bumped) epoch, so it is not
+        // accidentally invalidated by the old revocation.
+        let mut table = CapabilityTable::new();
+        let first = table.mint(CapabilityTarget::MemoryRegion(7), Rights::READ);
+        table.revoke(first.id);
+
+        let second = table.mint(CapabilityTarget::MemoryRegion(7), Rights::READ);
+        assert!(table.check(second.id, Rights::READ).is_ok());
     }
 }
