@@ -3,42 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aether Kernel</title>
+    <title>Aether Kernel — Distributed Spatial Operating System</title>
     <style>
+        :root {
+            --bg: #090d16;
+            --card-bg: #111827;
+            --border: #1f2937;
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
-            margin: 0;
         }
-        .container {
+        header {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 1.5rem;
+        }
+        .logo { font-weight: 700; font-size: 1.25rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+        .logo span { color: var(--accent); }
+        .nav-links { display: flex; gap: 1.5rem; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.95rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--accent); }
+
+        .hero {
+            max-width: 900px;
             text-align: center;
-            max-width: 600px;
-            padding: 2rem;
+            padding: 4rem 1.5rem 2rem 1.5rem;
         }
-        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; color: #38bdf8; }
-        p { color: #94a3b8; font-size: 1.1rem; line-height: 1.6; }
         .badge {
-            display: inline-block;
-            background: #1e293b;
-            color: #38bdf8;
-            padding: 0.5rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--card-bg);
+            color: var(--accent);
+            padding: 0.4rem 1rem;
             border-radius: 9999px;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
+            font-weight: 500;
             margin-bottom: 1.5rem;
-            border: 1px solid #334155;
+            border: 1px solid var(--border);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p.subtitle {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 2.5rem auto;
+        }
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 4rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            color: #090d16;
+        }
+        .btn-primary:hover { background-color: #0ea5e9; }
+        .btn-secondary {
+            background-color: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--accent); }
+
+        .features-grid {
+            max-width: 1100px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 0 1.5rem 4rem 1.5rem;
+        }
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: border-color 0.2s;
+        }
+        .feature-card:hover { border-color: var(--accent); }
+        .feature-card h3 { font-size: 1.15rem; margin-bottom: 0.75rem; color: var(--text); }
+        .feature-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+
+        footer {
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            width: 100%;
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="badge">Distributed Spatial Operating System</div>
-        <h1>Aether Kernel</h1>
-        <p>Unified perception, CRDT-based sync, and intent routing for AR/VR, robotics, and autonomous systems.</p>
+
+    <header>
+        <div class="logo">? Aether <span>Kernel</span></div>
+        <div class="nav-links">
+            <a href="https://github.com/Ciprian-LocalPulse/aether-kernel" target="_blank">GitHub</a>
+            <a href="https://github.com/Ciprian-LocalPulse/aether-kernel/tree/main/docs" target="_blank">Docs</a>
+        </div>
+    </header>
+
+    <main class="hero">
+        <div class="badge">
+            <span style="width: 8px; height: 8px; background: #38bdf8; border-radius: 50%; display: inline-block;"></span>
+            Distributed Spatial Operating System
+        </div>
+        <h1>Next-Gen Infrastructure for Spatial Computing</h1>
+        <p class="subtitle">Unified perception, CRDT-based synchronization, and robust intent routing engineered for AR/VR, robotics, and autonomous systems.</p>
+        
+        <div class="cta-buttons">
+            <a href="https://github.com/Ciprian-LocalPulse/aether-kernel" target="_blank" class="btn btn-primary">View on GitHub</a>
+            <a href="https://github.com/Ciprian-LocalPulse/aether-kernel/tree/main/examples" target="_blank" class="btn btn-secondary">Explore Examples</a>
+        </div>
+    </main>
+
+    <div class="features-grid">
+        <div class="feature-card">
+            <h3>Unified Perception</h3>
+            <p>Seamlessly aggregate and process real-time sensor streams and environment data for spatial intelligence.</p>
+        </div>
+        <div class="feature-card">
+            <h3>CRDT-Based Sync</h3>
+            <p>Conflict-free replicated data types ensuring lightning-fast, decentralized state synchronization across nodes.</p>
+        </div>
+        <div class="feature-card">
+            <h3>Intent Routing</h3>
+            <p>Advanced intent-driven message routing optimized for low-latency robotics and autonomous network topologies.</p>
+        </div>
     </div>
+
+    <footer>
+        <p>&copy; 2026 Ciprian-LocalPulse. Open-source research & reference implementation.</p>
+    </footer>
+
 </body>
 </html>
