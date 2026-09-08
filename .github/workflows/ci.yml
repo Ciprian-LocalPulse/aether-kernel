@@ -11,7 +11,7 @@ jobs:
     name: Rust (kernel, sync-engine, sdk/rust)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -35,7 +35,7 @@ jobs:
     name: C++ (perception-engine)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: install build tools
         run: sudo apt-get update && sudo apt-get install -y cmake g++
       - name: configure & build
@@ -51,8 +51,8 @@ jobs:
     name: Python (intent-router, sdk/python)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: intent-router — install & test
@@ -72,8 +72,8 @@ jobs:
     name: JS/TS (sdk/js)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - working-directory: sdk/js/aether-sdk
@@ -86,7 +86,7 @@ jobs:
     name: C++ SDK (header-only)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y g++
       - working-directory: sdk/cpp
         run: |
