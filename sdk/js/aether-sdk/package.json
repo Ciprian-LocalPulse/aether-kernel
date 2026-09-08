@@ -16,6 +16,6 @@
     "url": "https://github.com/Ciprian-LocalPulse/aether-kernel"
   },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^7.0.2"
   }
 }
