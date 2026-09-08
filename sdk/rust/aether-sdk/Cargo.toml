@@ -8,4 +8,4 @@ description = "Aether SDK (Rust) — client API for the Aether spatial computing
 repository = "https://github.com/Ciprian-LocalPulse/aether-kernel"
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
